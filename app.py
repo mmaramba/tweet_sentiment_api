@@ -1,7 +1,8 @@
 import numpy as np
-import io
+import random
 import tensorflow as tf
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from keras.models import load_model
 from train import clean_tweet, pad_tweet, vectorize_tweet
 from nltk import TweetTokenizer
@@ -9,6 +10,7 @@ from gensim.models import Word2Vec
 
 
 app = Flask(__name__)
+CORS(app)
 model = None
 w2v = None
 tokenizer = None
@@ -41,6 +43,18 @@ def prepare_tweet(tweet):
             vect.append(w2v.wv.vocab['0'].index)  # 0 is padding idx
     
     return vect
+
+
+# Get sentiment analysis data for candidate
+@app.route("/<candidate>", methods=["GET"])
+def getCandidate(candidate):
+  data = {
+    'success': True,
+    'id': candidate,
+    # TODO get real data
+    'data': [(-1 + random.random() * 2) for _ in range(10)]
+  }
+  return jsonify(data)
 
 
 # Predicts sentiment of tweet
