@@ -63,9 +63,11 @@ def predict():
                 res = model.predict(np.array([input_vector]))
                 print(len(res))
                 print("PREDICTION:", res)
+                p = res[0][0]
             
             # indicate that the request was a success
             data["success"] = True
+            data["prediction"] = int(round(p))
 
     # return the data dictionary as a JSON response
     return jsonify(data)
