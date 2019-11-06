@@ -6,7 +6,7 @@ Start API on http://localhost:5000
 python3 app.py
 ```
 
-Post to API:
+Post to API at http://localhost:5000/predict:
 ```
 {
 	"tweet": "This is a sad tweet. I hate my life."
