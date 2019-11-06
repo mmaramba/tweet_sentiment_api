@@ -24,11 +24,11 @@ def main():
         test_size=0.2
     )
     
-    
     print(x_train[:10])
     print(x_train.shape)
     print(y_train.shape)
 
+    # Create and train word2vec model
     w2v = Word2Vec(size=200, min_count=10)
     w2v.build_vocab(x_train)
     w2v.train(x_train, total_examples=w2v.corpus_count, epochs=w2v.iter)
@@ -40,12 +40,11 @@ def main():
     x_train = vectorize_tweet(w2v, x_train, pad_idx)
     x_test = vectorize_tweet(w2v, x_test, pad_idx)
 
-    
+    # Create embedding layer from w2v model to be passed into Keras as layer
     embedding_layer = w2v.wv.get_keras_embedding(train_embeddings=False)
-
     w2v.save('w2v.model')
     
-
+    # Create, train, save, and test Keras model
     model = Sequential()
     model.add(embedding_layer)
     model.add(LSTM(100))
@@ -65,17 +64,16 @@ def main():
     print("score: ", score)
     print("acc: ", acc)
 
-    
+
+# Fixes labels: 0 = Negative, 1 = Positive
 def fix_label(df):
     df['label'] = df['label'].apply(lambda x: 0 if x == 0 else 1)
     return df
 
+# Stores data in Pandas DataFrame
 def ingest_data():
-    # Pandas CSV settings
     col_names = ['label', "ids", "date", "flag", "user", "text"]
     encoding = "ISO-8859-1"
-
-    # Read CSV into DataFrame
     df = pd.read_csv('twitter_sa_train.csv', encoding=encoding, names=col_names)
     df = df[['label', 'text']]
     return df
@@ -90,10 +88,13 @@ def tokenize_samples(df):
     df['tokens'] = df['tokens'].map(pad_tweet)
     return df
 
+# Removes '#', links from tweet
 def clean_tweet(tokens):
     tokens = [t for t in tokens if not t.startswith('#') and not t.startswith('http')]
     return tokens
 
+
+# Pads tweet to 32 tokens
 def pad_tweet(tokens):
     if len(tokens) >= 32:
         return tokens[:32]
@@ -101,6 +102,8 @@ def pad_tweet(tokens):
         tokens.append('0')
     return tokens
 
+
+# Vectorizes tweet tokens in dataset
 def vectorize_tweet(model, x_train, pad_idx):
     source_word_indices = []
     for i in range(len(x_train)):
