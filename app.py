@@ -45,16 +45,40 @@ def prepare_tweet(tweet):
     return vect
 
 
-# Get sentiment analysis data for candidate
-@app.route("/<candidate>", methods=["GET"])
+# Get sentiment analysis data for a candidate
+@app.route("/candidate/<candidate>", methods=["GET"])
 def getCandidate(candidate):
-  data = {
+  result = {
     'success': True,
     'id': candidate,
     # TODO get real data
     'data': [(-1 + random.random() * 2) for _ in range(10)]
   }
-  return jsonify(data)
+  return jsonify(result)
+
+
+# Get sentiment analysis data for all candidates
+@app.route("/all", methods=["GET"])
+def getCandidates():
+  candidates = [
+    'joe-biden',
+    'cory-booker',
+    'pete-buttigieg',
+    'tulsi-gabbard',
+    'kamala-harris',
+    'amy-klobuchar',
+    'bernie-sanders',
+    'tom-steyer',
+    'elizabeth-warren',
+    'andrew-yang'
+  ]
+  result = [{
+    'success': True,
+    'id': candidate,
+    # TODO get real data
+    'data': [(-1 + random.random() * 2) for _ in range(10)]
+  } for candidate in candidates]
+  return jsonify(result)
 
 
 # Predicts sentiment of tweet
