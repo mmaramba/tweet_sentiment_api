@@ -31,7 +31,7 @@ candidates = ['joe biden', 'cory booker', 'pete buttigieg', 'tulsi gabbard',
     'elizabeth warren', 'andrew yang']
 
 for candidate in candidates:
-    qry = "{} -filter:retweets".format(candidate)
+    query = "{} -filter:retweets".format(candidate)
     #max_id = None
     max_id_cur = my_db['query_ids'].find({"name" : candidate})
     try:
@@ -44,7 +44,7 @@ for candidate in candidates:
     curr_last_tweet_id = None
     # get n*100 tweets for the candidate, maximum 180 queries per 15 min=18k tweets
     for i in range(1):
-        tweets_about_candidate = api.search(qry, count=100, max_id=max_id)
+        tweets_about_candidate = api.search(query, count=100, max_id=max_id)
         for i, tweet in enumerate(tweets_about_candidate):
             #print(i, tweet.text)
             if not curr_first_tweet_id:
@@ -81,5 +81,5 @@ for candidate in candidates:
 # Get all last 7 days:
 # 1. Query until 18k is reached (n*100)
 # 2. Wait 15 minutes
-# 3. Go back to step 1 until no more tweets are retrieved from qry
+# 3. Go back to step 1 until no more tweets are retrieved from query
 # 4. Repeat every week
