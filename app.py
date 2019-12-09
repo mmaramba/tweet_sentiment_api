@@ -137,9 +137,16 @@ def predict():
                 res = model.predict(np.array([input_vector]))
                 p = res[0][0]
                 print(p)
+                # For testing purposes
+                if p < 0.1:
+                  p = -1
+                elif p > .9:
+                  p = 1
+                else:
+                  p = 0
             
             data['success'] = True
-            data['prediction'] = int(round(p))
+            data['prediction'] = p
 
     return jsonify(data)
 

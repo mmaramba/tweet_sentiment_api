@@ -9,7 +9,7 @@ from nltk import TweetTokenizer
 from keras.models import load_model
 from train import clean_tweet, pad_tweet, vectorize_tweet
 from gensim.models import Word2Vec
-
+import os.path
 
 # Vectorizes a tweet
 def prepare_tweet(tweet):
@@ -40,11 +40,15 @@ def predict(tweet):
 
     return p_scaled
 
+fdir = os.path.abspath(os.path.dirname(__file__)) #This would give the absolute path to the directory in which your script exists.
+keras_model_f = os.path.join(fdir,'model.h5')
+w2v_model_f = os.path.join(fdir, 'w2v.model')
+
 
 # Load w2v model, tokenizer, Keras neural network model
-model = load_model('model.h5')
+model = load_model(keras_model_f)
 tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
-w2v = Word2Vec.load('w2v.model')
+w2v = Word2Vec.load(w2v_model_f)
 
 # Credentials
 connection_string = get_connection_string()
@@ -82,8 +86,8 @@ for candidate in candidates:
     curr_first_tweet_id = None
     curr_last_tweet_id = None
     # get n*100 tweets for the candidate, maximum 180 queries per 15 min=18k tweets
-    for i in range(1):
-        tweets_about_candidate = api.search(qry, count=100, max_id=max_id)
+    for i in range(5):
+        tweets_about_candidate = api.search(qry, count=100, since_id=max_id)
         for i, tweet in enumerate(tweets_about_candidate):
             #print(i, tweet.text)
             if not curr_first_tweet_id:
@@ -91,6 +95,7 @@ for candidate in candidates:
             max_id = tweet.id
         curr_last_tweet_id = max_id
 
+        print("Storing tweets about", candidate, "in MongoDB...")
         for tweet in tweets_about_candidate:
             prediction = predict(tweet.text)
 
@@ -100,6 +105,7 @@ for candidate in candidates:
                 "sentiment": prediction
             }
             my_col.insert_one(row)
+        print("Tweets stored.")
     
 
     # Store last tweet ID for each candidate so we know where to start off next query
@@ -109,7 +115,7 @@ for candidate in candidates:
         "first_id": curr_first_tweet_id,
         "last_id": curr_last_tweet_id
     }
-    id_col.update_one({"name": candidate}, {"$set": {"last_id": curr_last_tweet_id} }, upsert=True)
+    id_col.update_one({"name": candidate}, {"$set": {"last_id": curr_first_tweet_id} }, upsert=True)
 
 
 
