@@ -3,6 +3,7 @@ import random
 import tensorflow as tf
 import json
 import pymongo
+from datetime import datetime
 from credentials import *
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -55,22 +56,49 @@ def prepare_tweet(tweet):
     return vect
 
 
-# Get sentiment analysis data for a candidate
-@app.route("/candidate/<candidate>", methods=["GET"])
-def getCandidate(candidate):
-  # Convert joe-biden to joe biden to search in DB
+def get_candidate_from_db(candidate, start_time, end_time):
+  # Convert [first]-[last] to [first] [last] to search in DB
   candidate_name = ' '.join(candidate.split('-'))
-  candidate_data = client['test']['candidates'].find({ "name": candidate_name })
-  result = {
+  format_time = lambda x : datetime.fromtimestamp(int(x) // 1000)
+  start, end = format_time(start_time), format_time(end_time)
+  candidate_data = client['test']['candidates'].find({
+    'name': candidate_name,
+    'time': {
+      '$gte': start,
+      '$lt': end
+    }
+  })
+
+  # create 12 data points
+  start, end = int(start_time), int(end_time)
+  step = (end - start) / 12
+  bins = [[] for i in range(12)]
+  for data in candidate_data:
+    index = int(((datetime.timestamp(data['time']) * 1000) - start) / step)
+    bins[index].append(data)
+  average_sentiment = lambda data : (sum([entry['sentiment'] for entry in data]) / len(data)
+    if len(data) > 0 else 0)
+  return {
     'success': True,
     'id': candidate,
-    'data': [{"time": doc['time'], "sentiment": doc['sentiment']} for doc in candidate_data]
+    'data': [{
+      'time': int(start + step * i),
+      'sentiment': average_sentiment(bins[i])
+    } for i in range(len(bins))]
   }
+
+
+# Get sentiment analysis data for a candidate
+@app.route('/candidate/<candidate>', methods=['GET'])
+def getCandidate(candidate):
+  start_time = request.args.get('start_time')
+  end_time = request.args.get('end_time')
+  result = get_candidate_from_db(candidate, start_time, end_time)
   return jsonify(result)
 
 
 # Get sentiment analysis data for all candidates
-@app.route("/all", methods=["GET"])
+@app.route('/all', methods=['GET'])
 def getCandidates():
   candidates = [
     'joe-biden',
@@ -84,24 +112,17 @@ def getCandidates():
     'elizabeth-warren',
     'andrew-yang'
   ]
-  result = []
-  for candidate in candidates:
-    candidate_name = ' '.join(candidate.split('-'))
-    candidate_data = client['test']['candidates'].find({ "name": candidate_name })
-    candidate_result = {
-      'success': True,
-      'id': candidate,
-      'data': [{"time": doc['time'], "sentiment": doc['sentiment']} for doc in candidate_data]
-    }
-    result.append(candidate_result)
+  start_time = request.args.get('start_time')
+  end_time = request.args.get('end_time')
+  result = [get_candidate_from_db(candidate, start_time, end_time) for candidate in candidates]
   return jsonify(result)
 
 
 # Predicts sentiment of tweet
-@app.route("/predict", methods=["POST"])
+@app.route('/predict', methods=['POST'])
 def predict():
-    data = {"success": False}
-    if request.method == "POST":
+    data = {'success': False}
+    if request.method == 'POST':
         content = request.json
         print(type(content))
         if 'tweet' in content:
@@ -124,14 +145,14 @@ def predict():
                 else:
                   p = 0
             
-            data["success"] = True
-            data["prediction"] = p
+            data['success'] = True
+            data['prediction'] = p
 
     return jsonify(data)
 
-if __name__ == "__main__":
-    print(("* Loading Keras model and Flask starting server..."
-        "please wait until server has fully started"))
+if __name__ == '__main__':
+    print(('* Loading Keras model and Flask starting server...'
+        'please wait until server has fully started'))
     load_models()
     db_connect()
     app.run()
