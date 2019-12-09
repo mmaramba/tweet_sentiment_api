@@ -7,6 +7,7 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Dense, Dropout, LSTM
 from nltk.tokenize import TweetTokenizer
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import f1_score, precision_score, recall_score, confusion_matrix
 
 
 def main():
@@ -15,7 +16,7 @@ def main():
     print(df['label'].head(10))
     df = df.reindex(np.random.permutation(df.index))
     print(df['label'].head(10))
-    df = df[:250000]  # Only train on first N rows
+    #df = df[:250000]
     df = tokenize_samples(df)
 
     x_train, x_test, y_train, y_test = train_test_split(
@@ -61,6 +62,15 @@ def main():
     model.save('model.h5')
 
     score, acc = model.evaluate(x_test, y_test, verbose=2)
+
+    y_pred1 = model.predict(x_test)
+    y_pred = np.argmax(y_pred1, axis=1)
+
+    # Print f1, precision, and recall scores
+    print(precision_score(y_test, y_pred , average="micro"))
+    print(recall_score(y_test, y_pred , average="micro"))
+    print(f1_score(y_test, y_pred , average="micro"))
+
     print("score: ", score)
     print("acc: ", acc)
 
